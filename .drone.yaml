@@ -1,0 +1,37 @@
+kind: pipeline # 定义一个管道
+type: docker # 当前管道的类型
+name: drone-test # 当前管道的名称
+
+clone:
+  disable: false # 启用代码拉取
+
+volumes:
+  - name: build
+    host:
+      path: /usr/share/nginx/html
+
+trigger:
+  branch:
+    - master
+
+steps: # 定义管道的执行步骤
+  - name: build
+    image: none
+    volumes:
+      - name: build
+        path: /build
+    commands:
+      - cp ./* /build
+      - cd /build
+      - docker build -t drone-test:1.0.0 .
+      - docker run -d -p 8080:80 --name drone-test drone-test:1.0.0
+    
+
+  - name: deploy # 步骤名称
+    image: nginx # 当前步骤使用的镜像
+    depends_on: [clone] # 依赖的步骤
+    commands: # 当前步骤执行的命令
+      - cp -r ./index.html /usr/share/nginx/html/
+    when:
+      event: [push]
+      status: [success, failure]
