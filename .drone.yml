@@ -8,7 +8,7 @@ clone:
 volumes:
   - name: build
     host:
-      path: /usr/share/nginx/html
+      path: /usr/share/nginx/html/
 
 trigger:
   branch:
@@ -23,7 +23,7 @@ steps: # 定义管道的执行步骤
       - cp -r ./index.html /usr/share/nginx/html/
     volumes:
       - name: build
-        path: ./
+        path: /
     when:
       event: [push]
       status: [success, failure]
