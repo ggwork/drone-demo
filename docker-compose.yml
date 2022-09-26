@@ -5,21 +5,6 @@ networks:
     # external: false
     driver: bridge
 services:
-  # 数据库服务
-  db:
-    image: postgres:latest
-    container_name: drone_db
-    restart: always
-    networks:
-      - drone # 加入到drone网络
-    ports:
-      - "8081:5432" # 8081为容器暴露到服务器的端口，5432为容器内改应用的端口
-    environment:
-      - POSTGRES_USER=postgres # PGSQL默认用户名
-      - POSTGRES_PASSWORD=postgres # PGSQL默认密码
-      - POSTGRES_DB=drone # PGSQL默认数据库的名字
-    volumes:
-      - /volumes/drone/db:/var/lib/postgresql/data # 数据卷，前者为服务器真实位置，后者为改应用在容器内的位置
   # Drone Server 服务
   server:
     image: drone/drone:latest
@@ -31,41 +16,45 @@ services:
       - "7929:80"
       - "4443:443"
     environment:
-      - DRONE_SERVER_PROTO=https # 访问协议，创建webHooks和重定向
-      - DRONE_SERVER_HOST=github.com # 主机名称，创建webHooks和重定向
+      - DRONE_AGENTS_ENABLED=true 
+      - DRONE_SERVER_PROTO=http # 访问协议，创建webHooks和重定向
+      - DRONE_SERVER_HOST=101.43.217.242:7929 # 主机名称，创建webHooks和重定向
       - DRONE_RPC_SECRET=8352ce64ff37e2f05b848112c7a6845c # 与 drone runner 通讯的密钥
       - DRONE_USER_CREATE=username:ggwork,admin:true # 管理员账户
-      - DRONE_DATABASE_DRIVER=postgres # 数据库类型
-      - DRONE_DATABASE_DATASOURCE=postgres://postgres:postgres@db/drone?sslmode=disable # 数据库连接
       - DRONE_GIT_ALWAYS_AUTH=true # 使用 oauth 身份验证信息拉取代码
-      - DRONE_GITEE_CLIENT_ID=9a12e729d613b29ef2ee # GITEE 客户端 id
-      - DRONE_GITEE_CLIENT_SECRET=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 # GITEE 客户端 密钥
-      - DRONE_GITEE_SKIP_VERIFY=false # 禁用 GITEE 链接时 tls 验证
-
+      - DRONE_GITHUB_SERVER=https://github.com # GITEE 客户端 id
+      - DRONE_GITHUB_CLIENT_ID=d04445c8dd30c241ec1c # GITEE 客户端 id
+      - DRONE_GITHUB_CLIENT_SECRET=8c22df6210d03c0dbbb459681048194dc1e71201 # GITEE 客户端 密钥
+      - DRONE_OPEN=true 
+      - DRONE_DATABASE_DATASOURCE=/var/lib/drone/drone.sqlite 
+      - DRONE_DATABASE_DRIVER=sqlite3 
+      - DRONE_DEBUG=true  
+      - DRONE_LOGS_DEBUG=true 
+      - DRONE_LOGS_TRACE=true   
+      - DRONE_USER_CREATE=username:TheWinds，admin:true  
+      - TZ=Asia/Shanghai 
     volumes:
-      - /volumes/drone/server:/data
       - /var/run/docker.sock:/var/run/docker.sock
-    depends_on:
-      - db
+      - /var/data/drone:/var/lib/drone
   # Drone Docker Runner
   runner:
-    image: drone/drone-runner-docker:latest # 目前drone-runner-docker最新版本为 1.8.0
+    image: drone/agent:latest # 目前drone-runner-docker最新版本为 1.8.0
     container_name: drone_runner
     restart: always
+    depends_on:
+      - server
     networks:
       - drone # 加入到drone网络
     ports:
       - "7930:3000"
     environment:
-      - DRONE_RUNNER_NAME=docker-runner
-      - DRONE_RUNNER_CAPACITY=10 # 限制runner可执行的并发管道数量
+      - DRONE_RUNNER_NAME=localhost
+      - DRONE_RUNNER_CAPACITY=2 # 限制runner可执行的并发管道数量
       - DRONE_RPC_PROTO=http # 访问drone server 协议
-      - DRONE_RPC_HOST=drone-server # 访问drone server 服务器地址
+      - DRONE_RPC_HOST=101.43.217.242:7929 # 访问drone server 服务器地址
       - DRONE_RPC_SECRET=8352ce64ff37e2f05b848112c7a6845c # 与 drone server 通讯的密钥
       - DRONE_UI_USERNAME=ggwork # Drone Runner 的 UI 用户账号
-      - DRONE_UI_PASSWORD=123456 # Drone Runner 的 UI 用户密码
+      - DRONE_UI_PASSWORD=zztt13288214456 # Drone Runner 的 UI 用户密码
       # - DRONE_RUNNER_NETWORKS=drone_net
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-    depends_on:
-      - server
